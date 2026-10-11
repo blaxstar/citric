@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -31,9 +30,7 @@ func TestMaxConcurrentPerCL(t *testing.T) {
 	defer db.Close()
 
 	markerDir := t.TempDir()
-	toolCmd := func(name string) string {
-		return fmt.Sprintf(`f=%s/%s; touch "$f"; sleep 0.3; rm -f "$f"`, markerDir, name)
-	}
+	toolCmd := func(name string) string { return markerCmd(markerDir, name, 300) }
 
 	const perCLCap = 2
 	cfg := &config.Config{
@@ -42,7 +39,7 @@ func TestMaxConcurrentPerCL(t *testing.T) {
 			DataDir:            t.TempDir(),
 			MaxConcurrent:      10, // high — isolate the per-CL cap from the global one
 			MaxConcurrentPerCL: perCLCap,
-			BuildPath:          "/usr/bin:/bin",
+			BuildPath:          testBuildPath(),
 		},
 		BuildTools: []config.BuildTool{
 			{Name: "a", Command: toolCmd("a")},
@@ -139,9 +136,7 @@ func TestQueueMode(t *testing.T) {
 	defer db.Close()
 
 	markerDir := t.TempDir()
-	toolCmd := func(prefix, name string) string {
-		return fmt.Sprintf(`f=%s/%s-%s; touch "$f"; sleep 0.2; rm -f "$f"`, markerDir, prefix, name)
-	}
+	toolCmd := func(prefix, name string) string { return markerCmd(markerDir, prefix+"-"+name, 200) }
 
 	cfg := &config.Config{
 		Server: config.Server{
@@ -150,7 +145,7 @@ func TestQueueMode(t *testing.T) {
 			MaxConcurrent:      10, // deliberately high — queue mode must ignore this entirely
 			MaxConcurrentPerCL: 2,
 			QueueMode:          true,
-			BuildPath:          "/usr/bin:/bin",
+			BuildPath:          testBuildPath(),
 		},
 	}
 	r := New(db, cfg)
