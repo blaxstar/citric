@@ -5,12 +5,13 @@
 #   docker build --target full -t citric .   + Go, Node, Rust, Python/uv, shellcheck, golangci-lint, biome
 #
 # Multi-arch: docker buildx build --platform linux/amd64,linux/arm64 ...
+# (BuildKit is required; the legacy builder can't evaluate --platform=$BUILDPLATFORM.)
 
 ARG GO_VERSION=1.25
 ARG NODE_VERSION=22
-# BuildKit sets these; the defaults keep the legacy builder working.
-ARG BUILDPLATFORM=linux/amd64
-ARG TARGETARCH=amd64
+# Needs BuildKit (docker buildx), which sets BUILDPLATFORM / TARGETOS /
+# TARGETARCH per platform. Don't give them defaults here: a default would
+# override BuildKit's per-platform value and build every platform as amd64.
 
 # ── web UI ────────────────────────────────────────────────────────────────────
 FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-bookworm-slim AS web
@@ -30,7 +31,8 @@ RUN go mod download
 COPY . .
 COPY --from=web /src/internal/web/dist ./internal/web/dist
 ENV CGO_ENABLED=0
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
+RUN test -n "$TARGETARCH" || { echo "build with docker buildx (BuildKit)" >&2; exit 1; }; \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
       -o /out/target/citric ./cmd/citric
 # The clients /dl and install.sh / install.ps1 hand out.
 RUN for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do \
@@ -41,7 +43,9 @@ RUN for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 win
 
 # ── slim: git + citric ────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS slim
-RUN apt-get update \
+ARG TARGETARCH
+RUN test "$(dpkg --print-architecture)" = "$TARGETARCH" \
+ && apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates curl tini \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --uid 10001 --create-home --home-dir /home/citric --shell /usr/sbin/nologin citric \
@@ -85,6 +89,7 @@ COPY --from=uvtool /uv /uvx /usr/local/bin/
 # Toolchains land on the default build PATH (/usr/local/bin): builds run with a
 # throwaway HOME, so nothing may depend on a per-user install (no rustup).
 RUN set -eux; \
+    test "$(dpkg --print-architecture)" = "$TARGETARCH"; \
     ln -s /usr/local/go/bin/go /usr/local/go/bin/gofmt /usr/local/bin/; \
     case "$TARGETARCH" in amd64) rarch=x86_64 ;; arm64) rarch=aarch64 ;; *) exit 1 ;; esac; \
     curl -fsSL "https://static.rust-lang.org/dist/rust-${RUST_VERSION}-${rarch}-unknown-linux-gnu.tar.xz" | tar -xJ -C /tmp; \

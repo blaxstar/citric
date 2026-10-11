@@ -42,8 +42,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
-      - name: build slim image
+      # Both release platforms: the slim stage refuses to build if the image's
+      # architecture doesn't match the target, so a platform mix-up fails here
+      # instead of in a release.
+      - name: build slim image (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: slim
+          platforms: linux/amd64,linux/arm64
+      - name: load the native slim image for the next check
         uses: docker/build-push-action@v6
         with:
           context: .

@@ -9,6 +9,9 @@ make clients    # bin/dist/citric-<os>-<arch>: the binaries /dl serves
 make test
 ```
 
+Container images: `make docker` / `make docker-full` (needs Docker with
+buildx).
+
 The web UI is embedded in the binary, so build it (`make web`) before
 `go build`. Run a server with `bin/citric serve`, then copy `bin/dist` into
 `<data_dir>/dist` (or set `dist_dir`) so `/install.sh` can hand out clients.

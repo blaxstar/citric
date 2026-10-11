@@ -37,11 +37,13 @@ lint: test
 fmt:
 	gofmt -w .
 
+# Images need BuildKit: docker buildx (add --platform linux/amd64,linux/arm64
+# and --push for a multi-arch image).
 docker:
-	docker build --target slim --build-arg VERSION=$(VERSION) -t ghcr.io/blaxstar/citric:$(VERSION) .
+	docker buildx build --load --target slim --build-arg VERSION=$(VERSION) -t ghcr.io/blaxstar/citric:$(VERSION) .
 
 docker-full:
-	docker build --target full --build-arg VERSION=$(VERSION) -t ghcr.io/blaxstar/citric:$(VERSION)-full .
+	docker buildx build --load --target full --build-arg VERSION=$(VERSION) -t ghcr.io/blaxstar/citric:$(VERSION)-full .
 
 clean:
 	rm -rf bin internal/web/dist
