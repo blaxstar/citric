@@ -409,7 +409,7 @@ export const api = {
   unstarRepo:      (name: string) => req<void>('DELETE', `/repo/${name}/star`),
   getRepoStarCount:(name: string) => req<{ count: number }>('GET', `/repo/${name}/stars`),
   getUserStarred:  (username: string) => req<Repo[]>('GET', `/user/${username}/starred`),
-  listRealmRoles: () => req<string[]>('GET', '/admin/keycloak/roles'),
+  listRealmRoles: () => req<string[]>('GET', '/admin/roles'),
 
   // users
   listUsers:  () => req<User[]>('GET', '/user'),

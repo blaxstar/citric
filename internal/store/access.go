@@ -151,3 +151,23 @@ func (d *DB) ReplaceUserRoles(username string, roles []string) error {
 	}
 	return tx.Commit()
 }
+
+// ListKnownRoles returns every role or group name recorded from people's
+// sign-in tokens, sorted. With an identity provider that has no admin API
+// for listing roles, this is the set the access UI can suggest.
+func (d *DB) ListKnownRoles() ([]string, error) {
+	rows, err := d.sql.Query(`SELECT DISTINCT role FROM user_roles ORDER BY role`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var r string
+		if err := rows.Scan(&r); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}

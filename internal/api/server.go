@@ -175,7 +175,8 @@ func (s *Server) routes() {
 	r.Route("/admin", func(r chi.Router) {
 		r.Use(s.requireAuth)
 		r.With(s.requirePerm(PermSSOSync)).Post("/sync-users", s.handleSyncUsers)
-		r.With(s.requirePerm(PermRepoModify)).Get("/keycloak/roles", s.handleRealmRoles)
+		r.With(s.requirePerm(PermRepoModify)).Get("/roles", s.handleRealmRoles)
+		r.With(s.requirePerm(PermRepoModify)).Get("/keycloak/roles", s.handleRealmRoles) // pre-rename path
 		r.With(s.requirePerm(PermGalleryUpload)).Post("/backgrounds", s.handleBackgroundUpload)
 		r.With(s.requirePerm(PermGalleryRemove)).Delete("/backgrounds/{name}", s.handleBackgroundDelete)
 		// Full admins only — identity mapping is server-wide and there is no

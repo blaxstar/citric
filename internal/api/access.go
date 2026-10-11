@@ -92,10 +92,18 @@ func (s *Server) handleRepoAccessPut(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleRealmRoles lists the realm's role names for the access UI. Admin only.
+// handleRealmRoles lists role names for the access UI's team picker. With
+// Keycloak sync configured it asks Keycloak for every realm role; with any
+// other identity provider it returns the roles and groups seen in people's
+// sign-in tokens so far. Names can always be typed in by hand too.
 func (s *Server) handleRealmRoles(w http.ResponseWriter, r *http.Request) {
 	if !s.cfg.Keycloak.SyncEnabled() {
-		writeJSON(w, []string{})
+		roles, err := s.db.ListKnownRoles()
+		if err != nil {
+			http.Error(w, "could not list roles", http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, roles)
 		return
 	}
 	roles, err := keycloak.ListRealmRoles(s.cfg.Keycloak)

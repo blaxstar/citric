@@ -128,9 +128,12 @@ export function RepoSettingsModal({ repo, onClose, onDeleted }: {
                 ) : (
                   <>
                     <div style={{ marginBottom: '0.6rem' }}>
-                      <div className="section-title">Teams (Keycloak roles)</div>
-                      <ChipList items={aclRoles} placeholder="role e.g. team-infra"
+                      <div className="section-title">Teams (roles and groups)</div>
+                      <ChipList items={aclRoles} placeholder="role or group, e.g. team-infra"
                         suggestions={allRoles} onChange={setAclRoles} />
+                      <p className="form-hint" style={{ marginTop: '0.3rem' }}>
+                        Roles and groups from your identity provider. Suggestions list the ones seen at sign-in so far; you can type any name.
+                      </p>
                     </div>
                     <div style={{ marginBottom: '0.6rem' }}>
                       <div className="section-title">People</div>
