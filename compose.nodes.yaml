@@ -1,0 +1,56 @@
+# citric plus two build nodes on one Docker host. Nodes can just as well run on
+# other machines (any OS): see docs/nodes.md.
+#
+#   1. docker compose -f compose.nodes.yaml up -d citric
+#   2. sign in as an admin, then: citric node token create   (or Admin → Build nodes → Add node)
+#   3. CITRIC_NODE_JOIN_TOKEN=<token> docker compose -f compose.nodes.yaml up -d
+#
+# A join token is single-use, so give each node its own: start them one at a
+# time with a fresh token each. After joining, a node keeps its credential in
+# its volume and the token is no longer needed.
+
+services:
+  citric:
+    image: ghcr.io/blaxstar/citric:latest
+    restart: unless-stopped
+    ports:
+      - "4400:4400"
+    environment:
+      CITRIC_PUBLIC_URL: http://localhost:4400
+      CITRIC_ADMIN_USER: admin
+      # The server only coordinates; every build runs on a node.
+      CITRIC_LOCAL_BUILDS: "false"
+    volumes:
+      - citric-data:/var/lib/citric
+
+  node-1:
+    image: ghcr.io/blaxstar/citric:latest-full
+    restart: unless-stopped
+    command: ["node", "run"]
+    healthcheck: { disable: true }
+    environment:
+      CITRIC_NODE_SERVER: http://citric:4400
+      CITRIC_NODE_NAME: node-1
+      CITRIC_NODE_JOIN_TOKEN: ${CITRIC_NODE_JOIN_TOKEN:-}
+      CITRIC_NODE_MAX_CONCURRENT: "2"
+      # CITRIC_NODE_LABELS: gpu
+    volumes:
+      - node-1:/var/lib/citric-node
+
+  node-2:
+    image: ghcr.io/blaxstar/citric:latest-full
+    restart: unless-stopped
+    command: ["node", "run"]
+    healthcheck: { disable: true }
+    environment:
+      CITRIC_NODE_SERVER: http://citric:4400
+      CITRIC_NODE_NAME: node-2
+      CITRIC_NODE_JOIN_TOKEN: ${CITRIC_NODE_JOIN_TOKEN_2:-}
+      CITRIC_NODE_MAX_CONCURRENT: "2"
+    volumes:
+      - node-2:/var/lib/citric-node
+
+volumes:
+  citric-data:
+  node-1:
+  node-2:

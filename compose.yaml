@@ -1,0 +1,43 @@
+# citric quickstart.
+#
+#   1. Set CITRIC_PUBLIC_URL to the URL people will use to reach this server.
+#   2. docker compose up -d
+#   3. docker compose logs citric | grep "CLI token"   (first start only)
+#   4. citric auth login --server <CITRIC_PUBLIC_URL> --token <token>
+#
+# Every setting is an environment variable; see config/citric.toml.example.
+# For automatic HTTPS use compose.caddy.yaml; for build nodes, compose.nodes.yaml.
+
+services:
+  citric:
+    # :latest has git and citric only. :latest-full adds Go, Node, Rust,
+    # Python/uv, shellcheck, golangci-lint and biome, so CI works for every
+    # project type `citric template` knows. Builds run inside this container.
+    image: ghcr.io/blaxstar/citric:latest-full
+    restart: unless-stopped
+    ports:
+      - "4400:4400"
+    environment:
+      CITRIC_PUBLIC_URL: http://localhost:4400
+      CITRIC_SITE_TITLE: citric
+      # First start only: create this admin and print a one-time CLI token.
+      CITRIC_ADMIN_USER: admin
+      CITRIC_MAX_CONCURRENT: "4"
+      # Single sign-on with any OIDC provider (optional):
+      # CITRIC_OIDC_ISSUER: https://auth.example.com/realms/main
+      # CITRIC_OIDC_CLIENT_ID: citric
+      # CITRIC_OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc_client_secret
+      # Send every build to build nodes instead of running them here:
+      # CITRIC_LOCAL_BUILDS: "false"
+    volumes:
+      - citric-data:/var/lib/citric
+      - citric-cache:/var/cache/citric
+    # secrets: [oidc_client_secret]
+
+volumes:
+  citric-data:
+  citric-cache:
+
+# secrets:
+#   oidc_client_secret:
+#     file: ./secrets/oidc_client_secret

@@ -1,0 +1,162 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # create the GitHub release
+  packages: write   # push to ghcr.io
+  id-token: write   # keyless cosign signing
+
+jobs:
+  binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: sigstore/cosign-installer@v3
+      - name: third-party licenses
+        run: |
+          go install github.com/google/go-licenses@v1.6.0
+          {
+            echo "Third-party software in citric $GITHUB_REF_NAME"
+            echo
+            echo "== Go modules =="
+            go-licenses report ./cmd/citric 2>/dev/null
+            echo
+            echo "== npm packages bundled into the web UI =="
+            (cd web && npm ci --no-audit --no-fund >/dev/null && npx --yes license-checker@25 --production --csv)
+            echo
+            echo "== Fonts =="
+            echo "Roboto, SIL Open Font License 1.1, web/public/fonts/Roboto-OFL.txt"
+          } > THIRD_PARTY_LICENSES
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: slim
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: slim
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ steps.v.outputs.version }}
+          push: true
+          tags: |
+            ghcr.io/blaxstar/citric:${{ steps.v.outputs.version }}
+            ghcr.io/blaxstar/citric:latest
+      - name: full
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: full
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ steps.v.outputs.version }}
+          push: true
+          tags: |
+            ghcr.io/blaxstar/citric:${{ steps.v.outputs.version }}-full
+            ghcr.io/blaxstar/citric:latest-full
+
+  windows:
+    needs: binaries
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: v
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: build
+        shell: bash
+        run: |
+          (cd web && npm ci --no-audit --no-fund && npm run build)
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.version=${{ steps.v.outputs.version }}" \
+              -o build/$arch/citric.exe ./cmd/citric
+          done
+      # Authenticode signing runs only when a certificate is configured
+      # (secrets WINDOWS_CERT_PFX_BASE64 + WINDOWS_CERT_PASSWORD). Unsigned
+      # binaries work but trigger SmartScreen warnings.
+      - name: sign binaries
+        if: ${{ env.CERT != '' }}
+        env:
+          CERT: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERT))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+          foreach ($exe in Get-ChildItem build -Recurse -Filter citric.exe) {
+            & $signtool sign /f cert.pfx /p $env:CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $exe.FullName
+          }
+          Remove-Item cert.pfx
+      - name: msi
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          foreach ($arch in 'amd64','arm64') {
+            $wixArch = if ($arch -eq 'amd64') { 'x64' } else { 'arm64' }
+            wix build packaging/windows/citric.wxs -arch $wixArch `
+              -d Version=${{ steps.v.outputs.version }} -d BinDir=build/$arch `
+              -o "citric_${{ steps.v.outputs.version }}_windows_$arch.msi"
+          }
+      - name: sign msi
+        if: ${{ env.CERT != '' }}
+        env:
+          CERT: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERT))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+          foreach ($msi in Get-ChildItem -Filter *.msi) {
+            & $signtool sign /f cert.pfx /p $env:CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $msi.FullName
+          }
+          Remove-Item cert.pfx
+      - name: attach to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" *.msi --clobber
+      # winget: opens a PR against microsoft/winget-pkgs. Needs a token with
+      # public_repo scope in WINGET_TOKEN; skipped without it.
+      - name: winget
+        if: ${{ env.WINGET_TOKEN != '' }}
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          $v = "${{ steps.v.outputs.version }}"
+          $base = "https://github.com/blaxstar/citric/releases/download/v$v"
+          .\wingetcreate.exe update BLAXSTAR.citric --version $v --submit --token $env:WINGET_TOKEN `
+            --urls "$base/citric_${v}_windows_amd64.msi|x64" "$base/citric_${v}_windows_arm64.msi|arm64"

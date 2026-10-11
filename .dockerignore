@@ -1,0 +1,12 @@
+.git
+**/node_modules
+internal/web/dist
+data/
+dist/
+config/crit.toml
+config/citric.toml
+/crit
+/citric
+*.db
+*.db-shm
+*.db-wal

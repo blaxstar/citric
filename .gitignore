@@ -1,0 +1,47 @@
+# built binary — MUST stay anchored with a leading slash. A bare `crit` is an
+# unanchored pattern that also matches the cmd/crit DIRECTORY, which silently
+# excluded the entire CLI source tree from git.
+/crit
+/citric
+/citric.exe
+crit-linux-*
+crit-darwin-*
+crit-windows-*
+citric-linux-*
+citric-darwin-*
+citric-windows-*
+
+# release artifacts
+dist/
+
+# live server config — holds secrets, never commit it. Ship only the
+# placeholder-only config/crit.toml.example.
+/config/crit.toml
+/config/citric.toml
+
+# runtime data — db, logs, uploads, downloaded binaries
+data/
+# a stray sqlite db lands here when crit is run without --config (the real one is
+# data/crit.db). Anchored so it can only ever match the repo root.
+/crit.db
+/crit.db-shm
+/crit.db-wal
+/citric.db
+/citric.db-shm
+/citric.db-wal
+
+# go toolchain tarball
+golang.tar.gz
+
+# frontend build output (embedded at build time, not source)
+internal/web/dist/
+
+# node
+web/node_modules/
+web/tsconfig.tsbuildinfo
+
+# garbaggio
+**/*.bak
+
+# generated at release time
+/THIRD_PARTY_LICENSES

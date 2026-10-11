@@ -1,0 +1,153 @@
+# citric server configuration reference.
+#
+# Every setting is optional. citric starts on defaults alone, and each setting
+# can also come from a CITRIC_* environment variable (shown next to it), which
+# wins over this file. Secrets also accept CITRIC_<NAME>_FILE, a path to read
+# the value from (Docker / Kubernetes secrets).
+#
+# Copy to /etc/citric/citric.toml (or pass --config) and edit what you need.
+# Durations use Go syntax: "30s", "5m", "24h", "720h".
+
+# ── server ────────────────────────────────────────────────────────────────────
+
+[server]
+# Externally reachable base URL, used for clone URLs and install.sh.
+# Defaults to the host of each incoming request.              CITRIC_PUBLIC_URL
+# public_url = "https://citric.example.com"
+
+# Address and port to listen on.                    CITRIC_HOST / CITRIC_PORT
+host = "0.0.0.0"
+port = 4400
+
+# Bare git repositories live here as <repo>.git.                CITRIC_REPOS_DIR
+# Default: /var/lib/citric/repos  (Windows: %ProgramData%\citric\repos)
+# repos_dir = "/var/lib/citric/repos"
+
+# SQLite database, build logs, client binaries served at /dl.   CITRIC_DATA_DIR
+# Default: /var/lib/citric/data  (Windows: %ProgramData%\citric\data)
+# data_dir = "/var/lib/citric/data"
+
+# Shared build caches (cargo, sccache, GOCACHE, GOMODCACHE). Keep it outside
+# any repo checkout.                                            CITRIC_CACHE_DIR
+# Default: <data_dir>/cache
+# cache_dir = "/var/cache/citric"
+
+# Build concurrency: across all CLs, and within one CL.
+#                          CITRIC_MAX_CONCURRENT / CITRIC_MAX_CONCURRENT_PER_CL
+max_concurrent = 4
+max_concurrent_per_cl = 2
+
+# Run one CL's builds at a time server-wide (ignores max_concurrent). For a
+# small box that can't finish overlapping builds within their timeouts.
+#                                                             CITRIC_QUEUE_MODE
+queue_mode = false
+
+# PATH given to every build command (not inherited from the server process).
+#                                                             CITRIC_BUILD_PATH
+# build_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# ── auth ──────────────────────────────────────────────────────────────────────
+
+[auth]
+# Signs session and CLI tokens. Leave unset and citric generates one into
+# <data_dir>/jwt_secret on first start. Changing it signs everyone out.
+#                                     CITRIC_JWT_SECRET / CITRIC_JWT_SECRET_FILE
+# jwt_secret = ""
+
+# How long issued tokens stay valid.                           CITRIC_TOKEN_TTL
+token_ttl = "720h"
+
+# ── single sign-on (optional) ─────────────────────────────────────────────────
+# Any OpenID Connect provider: Keycloak, Authentik, Authelia, Zitadel, Okta,
+# Entra ID, Google, ... Register citric as a confidential client with redirect
+# URI <public_url>/auth/callback, standard (authorization code) flow and PKCE.
+
+[oidc]
+# Issuer URL; discovery is read from <issuer>/.well-known/openid-configuration.
+#                                                            CITRIC_OIDC_ISSUER
+# issuer = "https://auth.example.com/realms/main"
+
+#                             CITRIC_OIDC_CLIENT_ID / CITRIC_OIDC_CLIENT_SECRET
+# client_id = "citric"
+# client_secret = ""
+
+# Users holding this role become citric admins; everyone else submits and
+# reviews. Roles are read from realm_access / resource_access (Keycloak),
+# "roles" and "groups", plus roles_claim if set.         CITRIC_OIDC_ADMIN_ROLE
+admin_role = "citric-admin"
+#                                                       CITRIC_OIDC_ROLES_CLAIM
+# roles_claim = "app.roles"
+
+# Keycloak only: also import every enabled realm user as a reviewer, and keep
+# roles in sync, via the admin API. Needs a service account with the
+# "view-users" role under realm-management.
+#                                      CITRIC_KEYCLOAK_URL / CITRIC_KEYCLOAK_REALM
+# url = "https://auth.example.com"
+# realm = "main"
+# Reach the admin API at a different address (e.g. inside a container network)
+# than the public one.                                 CITRIC_KEYCLOAK_ADMIN_URL
+# internal_url = "http://keycloak:8080"
+#                                                 CITRIC_KEYCLOAK_SYNC_INTERVAL
+# sync_interval = "30m"
+# Set CITRIC_KEYCLOAK_SYNC=false (or sync_disabled = true) to keep SSO but turn
+# sync off.
+
+# ── web UI ────────────────────────────────────────────────────────────────────
+
+[ui]
+# Instance name shown in the header and on the sign-in page.  CITRIC_SITE_TITLE
+# title = "Acme Review"
+
+# Default color palette; everyone can still choose their own under Appearance.
+# tangerine-dusk (default), navel, meyer-lemon, blood-orange, grapefruit,
+# key-lime, yuzu, marmalade, zest, clementine-sea.                 CITRIC_THEME
+# theme = "tangerine-dusk"
+
+# ── build tools ───────────────────────────────────────────────────────────────
+# The named build steps citric knows about and how they gate submission. Each
+# repo supplies the actual commands in its own .citric.toml (see the bottom of
+# this file); command here is only a fallback for repos that don't.
+#
+# Tools run in depends_on order; independent tools run in parallel up to the
+# concurrency limits above. required = true blocks submission until the tool
+# passes. If a repo's .citric.toml doesn't define a required tool, the
+# requirement is waived for that repo (logged as skipped, not failed), so a new
+# required tool never breaks every existing repo at once.
+
+[[build_tool]]
+name     = "lint"
+timeout  = "5m"
+required = true
+# command = "make lint"   # fallback when the repo doesn't define lint
+# [build_tool.env]
+# KEY = "value"
+
+[[build_tool]]
+name       = "test"
+timeout    = "10m"
+depends_on = ["lint"]
+
+[[build_tool]]
+name       = "integration"
+timeout    = "30m"
+depends_on = ["test"]
+
+# format is a check, not a rewrite, so it runs beside lint rather than after
+# it: both sets of findings arrive in one push.
+[[build_tool]]
+name    = "format"
+timeout = "2m"
+
+# ── per-repo config (.citric.toml at the repo root) ───────────────────────────
+# Read straight from the pushed commit, no checkout needed. Generate one with
+# `citric template --write` (auto-detects the project type).
+#
+#   [[tool]]
+#   name    = "lint"            # must match a [[build_tool]] name above
+#   command = "npx biome check ."
+#   timeout = "3m"              # optional: overrides the server timeout
+#   [tool.env]
+#   NODE_ENV = "test"
+#
+# Build commands see CITRIC_CL_ID, CITRIC_PS_NUMBER, CITRIC_COMMIT_SHA,
+# CITRIC_REPO and CITRIC_TARGET_BRANCH.

@@ -1,0 +1,82 @@
+# Release pipeline: tag vX.Y.Z and the release workflow runs `goreleaser release`.
+version: 2
+project_name: citric
+
+before:
+  hooks:
+    - sh -c "cd web && npm ci --no-audit --no-fund && npm run build"
+    - go mod download
+
+builds:
+  - id: citric
+    main: ./cmd/citric
+    binary: citric
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: citric
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "citric_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - NOTICE
+      - THIRD_PARTY_LICENSES
+      - README.md
+      - config/citric.toml.example
+
+# The bare binaries /dl serves (citric-<os>-<arch>[.exe]), also attached to
+# the release so 'citric update' and install scripts can fetch them directly.
+  - id: raw
+    formats: [binary]
+    name_template: "citric-{{ .Os }}-{{ .Arch }}"
+
+nfpms:
+  - id: packages
+    package_name: citric
+    vendor: BLAXSTAR LLC
+    homepage: https://github.com/blaxstar/citric
+    maintainer: BLAXSTAR LLC
+    description: Self-hosted code review and CI.
+    license: Apache-2.0
+    formats: [deb, rpm]
+    bindir: /usr/bin
+    dependencies: [git, curl]
+    contents:
+      - src: packaging/linux/citric.service
+        dst: /usr/lib/systemd/system/citric.service
+      - src: config/citric.toml.example
+        dst: /usr/share/citric/citric.toml.example
+      - src: LICENSE
+        dst: /usr/share/doc/citric/LICENSE
+      - src: NOTICE
+        dst: /usr/share/doc/citric/NOTICE
+    scripts:
+      postinstall: packaging/linux/postinstall.sh
+      preremove: packaging/linux/preremove.sh
+
+checksum:
+  name_template: SHA256SUMS
+
+signs:
+  # Keyless cosign signature over the checksum file (GitHub OIDC identity).
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args: ["sign-blob", "--yes", "--output-signature=${signature}", "--output-certificate=${certificate}", "${artifact}"]
+    artifacts: checksum
+
+changelog:
+  use: git
+  sort: asc
+
+release:
+  github:
+    owner: blaxstar
+    name: citric

@@ -1,0 +1,11 @@
+citric
+Copyright 2026 BLAXSTAR LLC
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It bundles the Roboto font (web/public/fonts), Copyright 2011 The Roboto
+Project Authors, licensed under the SIL Open Font License, Version 1.1 (see
+web/public/fonts/Roboto-OFL.txt).
+
+Licenses of the Go modules and npm packages compiled into citric are listed in
+THIRD_PARTY_LICENSES, generated for each release.

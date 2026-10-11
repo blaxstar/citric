@@ -1,0 +1,21 @@
+<!-- WiX v5 package: installs citric.exe and puts it on the system PATH.
+     Build: wix build citric.wxs -arch x64 -d Version=1.2.3 -d BinDir=build/amd64
+     Server setup after install:  citric service install   (as Administrator) -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="citric" Manufacturer="BLAXSTAR LLC" Version="$(Version)"
+           UpgradeCode="6f1b2c34-8c51-4f4e-9a6b-2d0e7c3a91d5" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of citric is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="citric">
+        <Component Id="CitricExe" Guid="*">
+          <File Source="$(BinDir)\citric.exe" KeyPath="yes" />
+          <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="yes" Permanent="no" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="Main">
+      <ComponentRef Id="CitricExe" />
+    </Feature>
+  </Package>
+</Wix>

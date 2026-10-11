@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="outer"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="inner"/>
+      <feMerge>
+        <feMergeNode in="outer"/>
+        <feMergeNode in="inner"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="32" height="32" rx="8" fill="#0f0b08"/>
+
+  <!-- Checkbolt: bolt reads top-down, check V reads bottom-up.
+       Centered at (16,16.5). Chunky rounded stroke for a cute/impactful look. -->
+  <path d="M 24,6 L 16,16 L 22,16 L 14,27 L 8,22"
+        stroke="#ff9a2e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"
+        filter="url(#glow)"/>
+</svg>

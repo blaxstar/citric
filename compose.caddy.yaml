@@ -1,0 +1,39 @@
+# citric behind Caddy with automatic HTTPS (Let's Encrypt).
+#
+#   CITRIC_DOMAIN=citric.example.com docker compose -f compose.caddy.yaml up -d
+#
+# Point the domain's DNS at this host and open ports 80 and 443 first.
+
+services:
+  citric:
+    image: ghcr.io/blaxstar/citric:latest-full
+    restart: unless-stopped
+    environment:
+      CITRIC_PUBLIC_URL: https://${CITRIC_DOMAIN:?set CITRIC_DOMAIN}
+      CITRIC_ADMIN_USER: admin
+    volumes:
+      - citric-data:/var/lib/citric
+      - citric-cache:/var/cache/citric
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CITRIC_DOMAIN: ${CITRIC_DOMAIN}
+    # flush_interval -1 streams build logs (server-sent events) immediately;
+    # pushes can be large, so no request body limit is set.
+    command: >
+      caddy reverse-proxy --from ${CITRIC_DOMAIN} --to citric:4400
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  citric-data:
+  citric-cache:
+  caddy-data:
+  caddy-config:

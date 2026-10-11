@@ -1,0 +1,21 @@
+[Unit]
+Description=citric code review and CI server
+Documentation=https://github.com/blaxstar/citric
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=citric
+Group=citric
+ExecStart=/usr/bin/citric serve --config /etc/citric/citric.toml
+Restart=on-failure
+RestartSec=5s
+# Settings can also come from CITRIC_* variables in this file:
+EnvironmentFile=-/etc/citric/citric.env
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+ReadWritePaths=/var/lib/citric /var/cache/citric
+
+[Install]
+WantedBy=multi-user.target
