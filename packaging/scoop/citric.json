@@ -1,25 +1,31 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Self-hosted code review and CI (CLI and server).",
   "homepage": "https://github.com/blaxstar/citric",
   "license": "Apache-2.0",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/blaxstar/citric/releases/download/v0.1.0/citric_0.1.0_windows_amd64.zip",
-      "hash": "replace-with-sha256-from-SHA256SUMS"
+      "url": "https://github.com/blaxstar/citric/releases/download/v0.1.1/citric_0.1.1_windows_amd64.zip",
+      "hash": "63de67c54cadd421448981888d967164d01110167acc127294cde7ca01dfb737"
     },
     "arm64": {
-      "url": "https://github.com/blaxstar/citric/releases/download/v0.1.0/citric_0.1.0_windows_arm64.zip",
-      "hash": "replace-with-sha256-from-SHA256SUMS"
+      "url": "https://github.com/blaxstar/citric/releases/download/v0.1.1/citric_0.1.1_windows_arm64.zip",
+      "hash": "337740127b71a474f95107ca36c102cba829bb962fe8abb2077964eac21cb3ba"
     }
   },
   "bin": "citric.exe",
   "checkver": "github",
   "autoupdate": {
     "architecture": {
-      "64bit": { "url": "https://github.com/blaxstar/citric/releases/download/v$version/citric_$version_windows_amd64.zip" },
-      "arm64": { "url": "https://github.com/blaxstar/citric/releases/download/v$version/citric_$version_windows_arm64.zip" }
+      "64bit": {
+        "url": "https://github.com/blaxstar/citric/releases/download/v$version/citric_$version_windows_amd64.zip"
+      },
+      "arm64": {
+        "url": "https://github.com/blaxstar/citric/releases/download/v$version/citric_$version_windows_arm64.zip"
+      }
     },
-    "hash": { "url": "$baseurl/SHA256SUMS" }
+    "hash": {
+      "url": "$baseurl/SHA256SUMS"
+    }
   }
 }
