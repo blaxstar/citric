@@ -1,10 +1,10 @@
-# citric
+# CitriC
 
 **Self-hosted code review and CI.** Push a change, get a CL with a diff,
 reviewers, inline comments and build results; submit it when it's approved and
 green. One binary, one SQLite file, no external services.
 
-![citric](docs/screenshot.png)
+![CitriC](docs/screenshot.png)
 
 - **Gerrit-style review:** every commit is a change (CL) with patchsets, stable
   Change-Ids, stacked CLs, OWNERS files and auto-assigned reviewers.
@@ -18,7 +18,7 @@ green. One binary, one SQLite file, no external services.
 - **Single sign-on** with any OpenID Connect provider, or CLI tokens.
 - **Ten citrus color palettes,** dark and light; admins set the default and
   everyone can pick their own.
-- **No telemetry.** citric never contacts anything you didn't configure.
+- **No telemetry.** CitriC never contacts anything you didn't configure.
 
 ## Quickstart (Docker)
 
