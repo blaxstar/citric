@@ -65,7 +65,7 @@ func init() {
 	root.AddCommand(cmdNode)
 	root.AddCommand(cmdVersion)
 	root.Version = version
-	root.SetVersionTemplate("{{.Name}} " + version + " · © BLAXSTAR LLC · Apache-2.0\n")
+	root.SetVersionTemplate(versionLine() + "\n")
 	root.AddCommand(cmdRepo)
 
 	// client
