@@ -11,6 +11,7 @@ var (
 	ErrOwnersNotMet    = errors.New("OWNERS approval requirements not satisfied")
 	ErrBuildsNotPassed = errors.New("required builds have not passed")
 	ErrNotSubmitter    = errors.New("user does not have submit permission")
+	ErrNoLGTM          = errors.New("needs at least one LGTM")
 	ErrNeedsOtherLGTM  = errors.New("needs an LGTM from someone other than the author")
 )
 
@@ -36,6 +37,16 @@ func Check(in CheckInput) error {
 		if r.PSID == in.Patchset.ID && r.Verdict == model.VerdictNeedsWork {
 			return ErrNeedsWork
 		}
+	}
+	lgtm := false
+	for _, r := range in.Reviews {
+		if r.PSID == in.Patchset.ID && r.Verdict == model.VerdictLGTM {
+			lgtm = true
+			break
+		}
+	}
+	if !lgtm {
+		return ErrNoLGTM
 	}
 	if in.RequireOther {
 		other := false

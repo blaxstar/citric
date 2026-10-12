@@ -106,3 +106,32 @@ func TestRequireOtherLGTM_PerRepo(t *testing.T) {
 		t.Fatalf("submit with only a self-LGTM in a repo that requires another reviewer: got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+// Submit itself needs an LGTM, not just the UI: a CL with none is refused.
+func TestSubmit_RequiresAnLGTM(t *testing.T) {
+	s, db, stack, repoName := stackRepo(t)
+	if err := db.CreateUser(&model.User{Username: "tester", Email: "t@e", Role: model.RoleAdmin}); err != nil {
+		t.Fatal(err)
+	}
+	if out := postHook(s, repoName, stack[len(stack)-1]).Body.String(); strings.Contains(out, "error:") {
+		t.Fatalf("hook error: %s", out)
+	}
+	cls, _ := db.ListCLs(store.CLFilter{Status: "open"})
+	var bottom *model.CL
+	for _, cl := range cls {
+		ps, _ := db.ListPatchsets(cl.ID)
+		if ps[0].CommitSHA == stack[0] {
+			bottom = cl
+		}
+	}
+	if w := submitReq(t, s, bottom.ID, "tester"); w.Code != 403 || !strings.Contains(w.Body.String(), "at least one LGTM") {
+		t.Fatalf("submit with no LGTM: want 403, got %d: %s", w.Code, w.Body.String())
+	}
+	if cl, _ := db.GetCL(bottom.ID); cl.Status != model.CLStatusOpen {
+		t.Errorf("refused submit changed status to %s", cl.Status)
+	}
+	lgtm(t, db, bottom, "reviewer")
+	if w := submitReq(t, s, bottom.ID, "tester"); w.Code != 200 {
+		t.Fatalf("submit with an LGTM: got %d: %s", w.Code, w.Body.String())
+	}
+}
