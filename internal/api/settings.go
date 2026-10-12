@@ -7,7 +7,7 @@ import (
 )
 
 // settingKeys are the settings the admin UI may read and write.
-var settingKeys = []string{"public_url", "site_title", "default_palette"}
+var settingKeys = []string{"public_url", "site_title", "default_palette", settingRequireOtherLGTM}
 
 // publicBaseURL returns the externally-visible base URL (scheme://host, no
 // trailing slash). It prefers the admin-configured public_url setting, then the

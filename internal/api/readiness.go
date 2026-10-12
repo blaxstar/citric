@@ -65,29 +65,36 @@ func (s *Server) clReadiness(cl *model.CL, username string) (*Readiness, error) 
 		block("you don't have permission to merge")
 	}
 
+	repoPath := filepath.Join(s.cfg.Server.ReposDir, cl.Repo+".git")
+	requireOther := s.requiresOtherLGTM(repoPath)
+
 	reviews, _ := s.db.ListReviews(cl.ID, ps.ID)
-	lgtmers := map[string]bool{}
 	var needsWork []string
+	authorLGTM := false
 	for _, rev := range reviews {
 		if rev.PSID != ps.ID {
 			continue
 		}
 		switch rev.Verdict {
 		case model.VerdictLGTM:
-			lgtmers[rev.Reviewer] = true
+			authorLGTM = authorLGTM || rev.Reviewer == cl.Author
 		case model.VerdictNeedsWork:
 			needsWork = append(needsWork, rev.Reviewer)
 		}
 	}
+	lgtmers := countedLGTMers(reviews, ps.ID, cl.Author, requireOther)
 	if len(needsWork) > 0 {
 		sort.Strings(needsWork)
 		block("needs work (%s)", joinNames(needsWork))
 	}
 	if len(lgtmers) == 0 {
-		block("no LGTM yet")
+		if requireOther && authorLGTM {
+			block("needs an LGTM from someone other than the author")
+		} else {
+			block("no LGTM yet")
+		}
 	}
 
-	repoPath := filepath.Join(s.cfg.Server.ReposDir, cl.Repo+".git")
 	repo, err := gitpkg.Open(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("repo unavailable")

@@ -12,7 +12,9 @@ import { UserLink } from './UserLink'
 
 // What happened to each CL during this pass. 'lgtm' also covers CLs that
 // already carried your LGTM on the latest patchset when the pass started.
-export type StepResult = 'lgtm' | 'needs_work' | 'skipped'
+// 'own' is a CL you wrote in a repo that requires another reviewer: your LGTM
+// wouldn't count, so the pass leaves it for someone else.
+export type StepResult = 'lgtm' | 'needs_work' | 'skipped' | 'own'
 
 type Loaded = {
   diffs: FileDiff[]
@@ -66,15 +68,20 @@ export function StackReviewModal({ cls, onClose, onFinished }: {
   }
 
   // Start at the first CL you haven't LGTM'd yet; ones you already approved
-  // count as done.
+  // count as done, and so do your own when the repo requires another reviewer.
   useEffect(() => {
     let cancelled = false
-    Promise.all(open.map(cl => api.getReviews(cl.id).then(rs => [cl.id, rs] as const)))
-      .then(entries => {
+    const repo = open[0]?.repo
+    const requireOther = repo
+      ? api.getRepo(repo).then(d => !!(d.require_other_lgtm || d.require_other_lgtm_global)).catch(() => false)
+      : Promise.resolve(false)
+    Promise.all([requireOther, Promise.all(open.map(cl => api.getReviews(cl.id).then(rs => [cl.id, rs] as const)))])
+      .then(([other, entries]) => {
         if (cancelled) return
         const done = new Map<number, StepResult>()
         for (const [id, rs] of entries) {
-          if (rs.some(r => reviewerOf(r) === me && r.verdict === 'lgtm')) done.set(id, 'lgtm')
+          if (other && open.find(c => c.id === id)?.author === me) done.set(id, 'own')
+          else if (rs.some(r => reviewerOf(r) === me && r.verdict === 'lgtm')) done.set(id, 'lgtm')
         }
         setResults(done)
         const first = open.findIndex(cl => !done.has(cl.id))
@@ -131,9 +138,15 @@ export function StackReviewModal({ cls, onClose, onFinished }: {
     advance(next)
   }
 
+  // The CL before this one you can review (your own are passed over when they need another reviewer).
+  let prevIndex = -1
+  for (let i = (index ?? 0) - 1; i >= 0; i--) {
+    if (results.get(open[i].id) !== 'own') { prevIndex = i; break }
+  }
+
   function back() {
-    if (index === null || index === 0 || busy) return
-    setIndex(index - 1)
+    if (prevIndex === -1 || busy) return
+    setIndex(prevIndex)
   }
 
   async function comment(file: string, line: number, body: string) {
@@ -163,7 +176,9 @@ export function StackReviewModal({ cls, onClose, onFinished }: {
   const cl = index === null ? undefined : open[index]
   const data = cl ? loaded.get(cl.id) : undefined
   const othersReviews = data?.reviews ?? []
-  const settled = open.filter(c => results.has(c.id) && results.get(c.id) !== 'skipped').length
+  const settled = open.filter(c => results.has(c.id) && results.get(c.id) !== 'skipped' && results.get(c.id) !== 'own').length
+  const reviewable = open.filter(c => results.get(c.id) !== 'own')
+  const position = cl ? reviewable.findIndex(c => c.id === cl.id) + 1 : 0
 
   const body = (
     <div
@@ -187,18 +202,19 @@ export function StackReviewModal({ cls, onClose, onFinished }: {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <span style={{ fontWeight: 700 }}>Review stack</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--t3)' }}>
-              {index === null ? 'checking…' : `${index + 1} of ${open.length} · ${settled} reviewed`}
+              {index === null ? 'checking…' : `${position} of ${reviewable.length} · ${settled} reviewed`}
             </span>
             <button className="btn btn-ghost btn-icon btn-sm" style={{ marginLeft: 'auto' }} onClick={onClose} disabled={!!busy} aria-label="Close">✕</button>
           </div>
           <div style={{ display: 'flex', gap: 3, marginTop: '0.6rem' }} aria-hidden>
             {open.map((c, i) => {
               const r = results.get(c.id)
-              const bg = r === 'lgtm' ? 'var(--accent)' : r === 'needs_work' ? 'var(--red)' : 'var(--border)'
+              const bg = r === 'lgtm' ? 'var(--accent)' : r === 'needs_work' ? 'var(--red)' : r === 'own' ? 'var(--t3)' : 'var(--border)'
               return (
                 <button
                   key={c.id}
-                  title={`#${c.id} ${c.title}`}
+                  title={`#${c.id} ${c.title}${r === 'own' ? ' (yours; needs another reviewer)' : ''}`}
+                  disabled={r === 'own'}
                   onClick={() => !busy && setIndex(i)}
                   style={{
                     flex: 1, height: 5, padding: 0, border: 0, cursor: 'pointer', background: bg,
@@ -258,7 +274,7 @@ export function StackReviewModal({ cls, onClose, onFinished }: {
 
         {/* actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem 1rem', borderTop: 'var(--hairline) solid var(--border)' }}>
-          <button className="btn btn-ghost btn-sm" onClick={back} disabled={!index || !!busy}>← Back</button>
+          <button className="btn btn-ghost btn-sm" onClick={back} disabled={prevIndex === -1 || !!busy}>← Back</button>
           <span style={{ fontSize: '0.74rem', color: 'var(--t3)' }}>
             <kbd>L</kbd> LGTM · <kbd>W</kbd> needs work · <kbd>S</kbd> skip · <kbd>←</kbd> back
           </span>

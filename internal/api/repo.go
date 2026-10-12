@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	critgit "github.com/blaxstar/citric/internal/git"
@@ -28,6 +29,9 @@ type repoDetail struct {
 	CloneURL      string `json:"clone_url"`
 	Description   string `json:"description"`
 	DefaultBranch string `json:"default_branch"`
+	// Set on single-repo responses (get/update), not the list.
+	RequireOtherLGTM       bool `json:"require_other_lgtm,omitempty"`        // this repo's own setting
+	RequireOtherLGTMGlobal bool `json:"require_other_lgtm_global,omitempty"` // on server-wide
 }
 
 // gitDefaultPlaceholder is the description git writes into a fresh repo.
@@ -75,6 +79,17 @@ func (s *Server) repoDefaultBranch(repoPath string) string {
 	return strings.TrimSpace(string(out))
 }
 
+func (s *Server) repoDetailFor(r *http.Request, name, repoPath string) repoDetail {
+	return repoDetail{
+		Name:                   name,
+		CloneURL:               s.cloneURL(r, name),
+		Description:            repoDescription(repoPath),
+		DefaultBranch:          s.repoDefaultBranch(repoPath),
+		RequireOtherLGTM:       s.repoRequiresOtherLGTM(repoPath),
+		RequireOtherLGTMGlobal: s.requireOtherLGTMGlobal(),
+	}
+}
+
 // handleRepoGet returns details for one repo. Any authed user.
 func (s *Server) handleRepoGet(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSuffix(chi.URLParam(r, "name"), ".git")
@@ -83,12 +98,7 @@ func (s *Server) handleRepoGet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "repo not found", http.StatusNotFound)
 		return
 	}
-	writeJSON(w, repoDetail{
-		Name:          name,
-		CloneURL:      s.cloneURL(r, name),
-		Description:   repoDescription(repoPath),
-		DefaultBranch: s.repoDefaultBranch(repoPath),
-	})
+	writeJSON(w, s.repoDetailFor(r, name, repoPath))
 }
 
 // handleRepoUpdate sets a repo's description and/or default branch. Admin only.
@@ -102,8 +112,10 @@ func (s *Server) handleRepoUpdate(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Description   *string `json:"description"`
 		DefaultBranch *string `json:"default_branch"`
+		// RequireOtherLGTM: the author's own LGTM doesn't count in this repo.
+		RequireOtherLGTM *bool `json:"require_other_lgtm"`
 	}
-	if !decodeBody(w, r, &body, `{"description"?: string, "default_branch"?: string}`) {
+	if !decodeBody(w, r, &body, `{"description"?: string, "default_branch"?: string, "require_other_lgtm"?: bool}`) {
 		return
 	}
 	if body.Description != nil {
@@ -123,13 +135,14 @@ func (s *Server) handleRepoUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if body.RequireOtherLGTM != nil {
+		if out, err := s.gitC(repoPath, "config", "--bool", gitConfigRequireOtherLGTM, strconv.FormatBool(*body.RequireOtherLGTM)).CombinedOutput(); err != nil {
+			http.Error(w, fmt.Sprintf("set require_other_lgtm: %v\n%s", err, out), http.StatusInternalServerError)
+			return
+		}
+	}
 	s.db.WriteAudit(s.currentUser(r), "repo.update", name, "")
-	writeJSON(w, repoDetail{
-		Name:          name,
-		CloneURL:      s.cloneURL(r, name),
-		Description:   repoDescription(repoPath),
-		DefaultBranch: s.repoDefaultBranch(repoPath),
-	})
+	writeJSON(w, s.repoDetailFor(r, name, repoPath))
 }
 
 // handleRepoList returns all bare repos in repos_dir.

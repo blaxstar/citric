@@ -575,12 +575,8 @@ func (s *Server) handleCLSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	changedFiles, _ := repo.ChangedFiles(ps.BaseSHA, ps.CommitSHA)
-	lgtmers := map[string]bool{}
-	for _, rev := range reviews {
-		if rev.Verdict == model.VerdictLGTM {
-			lgtmers[rev.Reviewer] = true
-		}
-	}
+	requireOther := s.requiresOtherLGTM(repoPath)
+	lgtmers := countedLGTMers(reviews, ps.ID, cl.Author, requireOther)
 	ownersOK := checkOwnersApproval(changedFiles, lgtmers, repoPath, ps.CommitSHA)
 
 	requiredTools := make([]string, 0)
@@ -597,6 +593,7 @@ func (s *Server) handleCLSubmit(w http.ResponseWriter, r *http.Request) {
 		Builds:        builds,
 		RequiredTools: requiredTools,
 		OwnersOK:      ownersOK,
+		RequireOther:  requireOther,
 		Submitter:     submitter,
 		ForceSubmit:   body.ForceSubmit && submitter.Role == model.RoleAdmin,
 	}); gateErr != nil {

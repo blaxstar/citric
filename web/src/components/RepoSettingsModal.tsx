@@ -14,6 +14,7 @@ export function RepoSettingsModal({ repo, onClose, onDeleted }: {
   const [error, setError]     = useState('')
   const [desc, setDesc]       = useState('')
   const [branch, setBranch]   = useState('')
+  const [requireOther, setRequireOther] = useState(false)
   const [copied, setCopied]   = useState(false)
   const [ownersOpen, setOwnersOpen] = useState(false)
 
@@ -28,7 +29,7 @@ export function RepoSettingsModal({ repo, onClose, onDeleted }: {
 
   useEffect(() => {
     api.getRepo(repo).then(d => {
-      setDetail(d); setDesc(d.description); setBranch(d.default_branch)
+      setDetail(d); setDesc(d.description); setBranch(d.default_branch); setRequireOther(!!d.require_other_lgtm)
     }).catch(e => setError(e?.message ?? 'Failed to load repo')).finally(() => setLoading(false))
     api.getRepoAccess(repo).then(a => {
       setRestricted(a.restricted); setAclUsers(a.users ?? []); setAclRoles(a.roles ?? [])
@@ -52,7 +53,7 @@ export function RepoSettingsModal({ repo, onClose, onDeleted }: {
   async function save() {
     setSaving(true); setError('')
     try {
-      const d = await api.updateRepo(repo, { description: desc, default_branch: branch })
+      const d = await api.updateRepo(repo, { description: desc, default_branch: branch, require_other_lgtm: requireOther })
       setDetail(d)
     } catch (e: any) {
       setError(e?.message ?? 'Save failed')
@@ -110,6 +111,21 @@ export function RepoSettingsModal({ repo, onClose, onDeleted }: {
                 <div className="section-title">Default branch</div>
                 <input className="input" value={branch} onChange={e => setBranch(e.target.value)}
                   style={{ width: '12rem' }} />
+              </div>
+
+              <div>
+                <div className="section-title">Reviews</div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                  <input type="checkbox" checked={requireOther || !!detail.require_other_lgtm_global}
+                    disabled={!!detail.require_other_lgtm_global}
+                    onChange={e => setRequireOther(e.target.checked)} />
+                  Require an LGTM from someone other than the author
+                </label>
+                <p className="form-hint" style={{ marginTop: '0.35rem' }}>
+                  {detail.require_other_lgtm_global
+                    ? 'On for every repo in Server settings.'
+                    : "An author's LGTM on their own CL won't count toward submitting it."}
+                </p>
               </div>
 
               {error && <p style={{ color: 'var(--red)', fontSize: '0.8rem' }}>{error}</p>}

@@ -658,6 +658,8 @@ function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void;
   const allLGTM = !!reviewed && openCLs.length > 0 && openCLs.every(cl => reviewed.get(cl.id) === 'lgtm')
   const needsWork = reviewed ? openCLs.filter(cl => reviewed.get(cl.id) === 'needs_work').length : 0
   const skipped = reviewed ? openCLs.filter(cl => !reviewed.has(cl.id) || reviewed.get(cl.id) === 'skipped').length : 0
+  const own = reviewed ? openCLs.filter(cl => reviewed.get(cl.id) === 'own').length : 0
+  const ownNote = own ? ` ${own === 1 ? '1 is yours and needs' : `${own} are yours and need`} another reviewer's LGTM.` : ''
 
   useEffect(() => {
     if (reviewing) return // the review dialog owns Escape while it's open
@@ -707,7 +709,7 @@ function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void;
           <div className="stack-review-banner" style={{ padding: '0.6rem 1rem', fontSize: '0.84rem', borderBottom: 'var(--hairline) solid var(--border)', color: allLGTM ? 'var(--accent)' : 'var(--t2)' }}>
             {allLGTM
               ? `All ${openCLs.length} CLs have your LGTM. Merge the stack to land them all at once.`
-              : `Review pass done${needsWork ? `: ${needsWork} need${needsWork === 1 ? 's' : ''} work` : ''}${skipped ? `${needsWork ? ',' : ':'} ${skipped} skipped` : ''}. Merge stack lands whatever is ready, bottom-up.`}
+              : `Review pass done${needsWork ? `: ${needsWork} need${needsWork === 1 ? 's' : ''} work` : ''}${skipped ? `${needsWork ? ',' : ':'} ${skipped} skipped` : ''}.${ownNote} Merge stack lands whatever is ready, bottom-up.`}
           </div>
         )}
 

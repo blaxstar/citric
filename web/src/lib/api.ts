@@ -149,6 +149,8 @@ export interface RepoDetail {
   clone_url: string
   description: string
   default_branch: string
+  require_other_lgtm?: boolean        // this repo's own setting
+  require_other_lgtm_global?: boolean // on server-wide
 }
 
 export interface LangStat {
@@ -200,6 +202,7 @@ export interface Settings {
   public_url: string
   site_title: string
   default_palette?: string
+  require_other_lgtm?: string // "true" | "false"
 }
 
 export interface RepoAccess {
@@ -354,7 +357,7 @@ export const api = {
   createRepo: (name: string) => req<Repo>('POST', '/repo', { name }),
   deleteRepo: (name: string) => req<void>('DELETE', `/repo/${name}`),
   getRepo:    (name: string) => req<RepoDetail>('GET', `/repo/${name}`),
-  updateRepo: (name: string, body: { description?: string; default_branch?: string }) =>
+  updateRepo: (name: string, body: { description?: string; default_branch?: string; require_other_lgtm?: boolean }) =>
     req<RepoDetail>('PATCH', `/repo/${name}`, body),
   getOwners:  (name: string) => req<OwnersData>('GET', `/repo/${name}/owners`),
   updateOwners: (name: string, raw: string) =>

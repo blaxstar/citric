@@ -11,6 +11,7 @@ var (
 	ErrOwnersNotMet    = errors.New("OWNERS approval requirements not satisfied")
 	ErrBuildsNotPassed = errors.New("required builds have not passed")
 	ErrNotSubmitter    = errors.New("user does not have submit permission")
+	ErrNeedsOtherLGTM  = errors.New("needs an LGTM from someone other than the author")
 )
 
 type CheckInput struct {
@@ -20,6 +21,7 @@ type CheckInput struct {
 	Builds        []*model.Build
 	RequiredTools []string // names of tools that must pass; empty = no build gate
 	OwnersOK      bool     // pre-evaluated by owners.Resolver
+	RequireOther  bool     // the author's own LGTM doesn't count; someone else must LGTM
 	Submitter     *model.User
 	ForceSubmit   bool // admin only — bypasses build gate
 }
@@ -33,6 +35,18 @@ func Check(in CheckInput) error {
 	for _, r := range in.Reviews {
 		if r.PSID == in.Patchset.ID && r.Verdict == model.VerdictNeedsWork {
 			return ErrNeedsWork
+		}
+	}
+	if in.RequireOther {
+		other := false
+		for _, r := range in.Reviews {
+			if r.PSID == in.Patchset.ID && r.Verdict == model.VerdictLGTM && r.Reviewer != in.CL.Author {
+				other = true
+				break
+			}
+		}
+		if !other {
+			return ErrNeedsOtherLGTM
 		}
 	}
 	if !in.OwnersOK {
