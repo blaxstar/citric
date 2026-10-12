@@ -1345,3 +1345,22 @@ code, pre {
   from { transform: scale(0.3); opacity: 0; }
   to   { transform: scale(1);   opacity: 1; }
 }
+
+/* ── stack review ───────────────────────────────────────── */
+/* Draws the eye to "Merge stack" once every CL in the stack has your LGTM. */
+@media (prefers-reduced-motion: no-preference) {
+  .btn-attention { animation: btn-attention 1.4s ease-out 3; }
+}
+.btn-attention { box-shadow: 0 0 0 2px var(--accent-dim, var(--accent)); }
+@keyframes btn-attention {
+  0%   { box-shadow: 0 0 0 0 var(--accent); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 2px var(--accent-dim, var(--accent)); }
+}
+kbd {
+  font-family: inherit;
+  font-size: 0.7rem;
+  padding: 0 0.3rem;
+  border: var(--hairline) solid var(--border);
+  color: var(--t2);
+}

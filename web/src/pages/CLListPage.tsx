@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CLStatusBadge, BuildBadge } from '../components/Badge'
+import { CLStatusBadge, BuildBadge, VerdictBadge } from '../components/Badge'
 import { PageSpinner, Spinner } from '../components/Spinner'
 import { UserLink } from '../components/UserLink'
 import { navigate } from '../lib/router'
 import { api } from '../lib/api'
 import { humanTime, buildDuration } from '../lib/theme'
-import type { CL, Build } from '../lib/api'
+import type { CL, Build, Review } from '../lib/api'
 import { getViewSettings, saveViewSettings } from '../lib/viewSettings'
 import { Icon, Glyphs } from '../components/icons'
 import { MergeStackModal } from '../components/MergeStackModal'
+import { StackReviewModal } from '../components/StackReviewModal'
+import type { StepResult } from '../components/StackReviewModal'
+import { latestBuildPerTool } from '../lib/builds'
+import { getUsername } from '../lib/auth'
 
 type Filter = 'all' | 'open' | 'merged' | 'abandoned' | 'mine' | 'assigned'
 type SortBy = 'updated' | 'id_desc' | 'id_asc'
@@ -598,55 +602,73 @@ function StackCard({ cls, chains, expanded, onToggleExpand, showRepo, selectMode
   )
 }
 
-// getBuilds is scoped server-side to the CL's latest patchset, but not to the
-// latest build per tool within it — retriggering (a retry, or the bulk
-// "Trigger builds" action) inserts a fresh row per tool rather than replacing
-// the old one, so the response can carry more than one row for the same
-// tool_name. Keep only the highest id (== most recently inserted) per tool,
-// matching this modal's "current state only" design.
-function latestBuildPerTool(builds: Build[]): Build[] {
-  const byTool = new Map<string, Build>()
-  for (const b of builds) {
-    const existing = byTool.get(b.tool_name)
-    if (!existing || b.id > existing.id) byTool.set(b.tool_name, b)
-  }
-  return [...byTool.values()]
-}
-
-// The stack view: every CL's description and latest build statuses in one
-// scrollable list. "View full CL" opens a CL's detail page; "Merge stack"
-// hands off to MergeStackModal.
+// The stack view: every CL's description, latest build statuses and reviews in
+// one scrollable list. "View full CL" opens a CL's detail page; "Review stack"
+// walks the stack one CL at a time (StackReviewModal); "Merge stack" hands off
+// to MergeStackModal.
 function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void; onMerge: () => void }) {
   const [buildsByCL, setBuildsByCL] = useState<Map<number, Build[]>>(new Map())
+  const [reviewsByCL, setReviewsByCL] = useState<Map<number, Review[]>>(new Map())
   const [loadedIds,  setLoadedIds]  = useState<Set<number>>(new Set())
+  const [reviewing, setReviewing] = useState(false)
+  // Set when a review pass ends; drives the banner and the highlighted Merge button.
+  const [reviewed, setReviewed] = useState<Map<number, StepResult> | null>(null)
+  const me = getUsername()
+  const openCLs = cls.filter(cl => cl.status === 'open')
 
-  useEffect(() => {
-    let cancelled = false
-    Promise.allSettled(cls.map(cl => api.getBuilds(cl.id).then(builds => ({ id: cl.id, builds }))))
+  function load() {
+    return Promise.allSettled(cls.map(cl =>
+      Promise.all([api.getBuilds(cl.id), api.getReviews(cl.id)]).then(([builds, reviews]) => ({ id: cl.id, builds, reviews }))))
       .then(results => {
-        if (cancelled) return
         const map = new Map<number, Build[]>()
+        const revs = new Map<number, Review[]>()
         const loaded = new Set<number>()
         for (const r of results) {
           if (r.status === 'fulfilled') {
             map.set(r.value.id, latestBuildPerTool(r.value.builds))
+            revs.set(r.value.id, r.value.reviews)
             loaded.add(r.value.id)
           }
         }
-        setBuildsByCL(map)
-        setLoadedIds(loaded)
+        return { map, revs, loaded }
       })
+  }
+
+  function apply({ map, revs, loaded }: Awaited<ReturnType<typeof load>>) {
+    setBuildsByCL(map)
+    setReviewsByCL(revs)
+    setLoadedIds(loaded)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    load().then(r => { if (!cancelled) apply(r) })
     return () => { cancelled = true }
     // cls is the stack's member list, stable for the modal's lifetime — refetching
     // if the array identity changes on a parent re-render isn't needed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  function finishReview(results: Map<number, StepResult>) {
+    setReviewing(false)
+    setReviewed(results)
+    load().then(apply)
+  }
+
+  const allLGTM = !!reviewed && openCLs.length > 0 && openCLs.every(cl => reviewed.get(cl.id) === 'lgtm')
+  const needsWork = reviewed ? openCLs.filter(cl => reviewed.get(cl.id) === 'needs_work').length : 0
+  const skipped = reviewed ? openCLs.filter(cl => !reviewed.has(cl.id) || reviewed.get(cl.id) === 'skipped').length : 0
+
   useEffect(() => {
+    if (reviewing) return // the review dialog owns Escape while it's open
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, reviewing])
+
+  if (reviewing) {
+    return <StackReviewModal cls={cls} onClose={() => { setReviewing(false); load().then(apply) }} onFinished={finishReview} />
+  }
 
   const body = (
     <div
@@ -666,9 +688,28 @@ function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void;
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1rem', borderBottom: 'var(--hairline) solid var(--border)' }}>
           <span style={{ fontWeight: 700 }}>Stack of {cls.length} CLs</span>
-          <button className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }} onClick={onMerge}>Merge stack</button>
+          {openCLs.length > 0 && (
+            <button className={`btn btn-sm ${allLGTM ? 'btn-ghost' : 'btn-primary'}`} style={{ marginLeft: 'auto' }} onClick={() => setReviewing(true)}>
+              Review stack
+            </button>
+          )}
+          <button
+            className={`btn btn-sm ${allLGTM || openCLs.length === 0 ? 'btn-primary' : 'btn-ghost'}${allLGTM ? ' btn-attention' : ''}`}
+            style={openCLs.length === 0 ? { marginLeft: 'auto' } : undefined}
+            onClick={onMerge}
+          >
+            Merge stack
+          </button>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Close">✕</button>
         </div>
+
+        {reviewed && (
+          <div className="stack-review-banner" style={{ padding: '0.6rem 1rem', fontSize: '0.84rem', borderBottom: 'var(--hairline) solid var(--border)', color: allLGTM ? 'var(--accent)' : 'var(--t2)' }}>
+            {allLGTM
+              ? `All ${openCLs.length} CLs have your LGTM. Merge the stack to land them all at once.`
+              : `Review pass done${needsWork ? `: ${needsWork} need${needsWork === 1 ? 's' : ''} work` : ''}${skipped ? `${needsWork ? ',' : ':'} ${skipped} skipped` : ''}. Merge stack lands whatever is ready, bottom-up.`}
+          </div>
+        )}
 
         <div style={{ overflow: 'auto', padding: '0.5rem' }}>
           {cls.map(cl => {
@@ -694,6 +735,13 @@ function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void;
                   <UserLink username={cl.author} />
                   <span>·</span>
                   <span>{humanTime(cl.updated_at)}</span>
+                  {(reviewsByCL.get(cl.id) ?? []).map(r => (
+                    <span key={r.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <span>·</span>
+                      <VerdictBadge verdict={r.verdict} />
+                      {(r.author ?? r.reviewer) === me ? 'you' : (r.author ?? r.reviewer)}
+                    </span>
+                  ))}
                 </div>
                 {cl.description && (
                   <p style={{ fontSize: '0.85rem', color: 'var(--t2)', whiteSpace: 'pre-wrap', margin: '0 0 0.5rem' }}>
