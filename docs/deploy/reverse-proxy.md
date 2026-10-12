@@ -36,5 +36,5 @@ server {
 }
 ```
 
-`/internal/hook/post-receive` is only called by citric's own git hooks and is
+`/internal/hook/post-receive` is only called by CitriC's own git hooks and is
 authenticated with a per-server token, so it needs no special proxy rule.

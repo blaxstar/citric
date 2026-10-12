@@ -387,7 +387,7 @@ func (s *Server) handleSSOCallback(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAuthConfig(w http.ResponseWriter, r *http.Request) {
 	title, _ := s.db.GetSetting("site_title")
 	if title == "" {
-		title = "citric"
+		title = "CitriC"
 	}
 	palette, _ := s.db.GetSetting("default_palette")
 	w.Header().Set("Content-Type", "application/json")

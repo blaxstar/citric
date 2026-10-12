@@ -1,8 +1,8 @@
 # Contributing
 
 Thanks for your interest in citric. **This repository is a read-only mirror**
-of the citric source, published with `citric publish`; development happens
-on a citric server, and pull requests here are closed without being merged.
+of the CitriC source, published with `citric publish`; development happens
+on a CitriC server, and pull requests here are closed without being merged.
 
 What helps right now:
 

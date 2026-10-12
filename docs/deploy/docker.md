@@ -2,7 +2,7 @@
 
 | Image | Contents |
 | --- | --- |
-| `ghcr.io/blaxstar/citric:<version>`, `:latest` | git + citric (~450 MB) |
+| `ghcr.io/blaxstar/citric:<version>`, `:latest` | git + CitriC (~450 MB) |
 | `ghcr.io/blaxstar/citric:<version>-full`, `:latest-full` | + Go, Node LTS, Rust, Python/uv, shellcheck, golangci-lint, biome (~2.4 GB) |
 
 Both are multi-arch (`linux/amd64`, `linux/arm64`) and run as an unprivileged
@@ -21,7 +21,7 @@ USER citric
 ## Compose files
 
 - [`compose.yaml`](../../compose.yaml): the quickstart.
-- [`compose.caddy.yaml`](../../compose.caddy.yaml): citric behind Caddy with
+- [`compose.caddy.yaml`](../../compose.caddy.yaml): CitriC behind Caddy with
   automatic HTTPS: `CITRIC_DOMAIN=citric.example.com docker compose -f compose.caddy.yaml up -d`.
 - [`compose.nodes.yaml`](../../compose.nodes.yaml): the server plus two
   [build nodes](../nodes.md).

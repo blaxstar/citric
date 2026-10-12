@@ -65,7 +65,7 @@ func serverServiceSpec(cmd *cobra.Command, user string) (serviceSpec, error) {
 	}
 	return serviceSpec{
 		Name:        brand.Name,
-		DisplayName: "citric",
+		DisplayName: "CitriC",
 		Description: "citric code review and CI server",
 		Args:        args,
 		User:        user,

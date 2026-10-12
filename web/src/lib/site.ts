@@ -3,7 +3,7 @@
 // the authoritative value comes from /auth/config (public).
 
 const KEY = 'citric:site_title'
-const DEFAULT = 'citric'
+const DEFAULT = 'CitriC'
 
 export function getSiteTitle(): string {
   return localStorage.getItem(KEY) || DEFAULT
@@ -16,7 +16,7 @@ export function setSiteTitle(title: string) {
 }
 
 // logoMark is the short badge shown in the nav/login logo — first two letters
-// of the title, lowercased (e.g. "citric" → "ci").
+// of the title, lowercased (e.g. "CitriC" → "ci").
 export function logoMark(): string {
   return getSiteTitle().replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toLowerCase() || 'ci'
 }

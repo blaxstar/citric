@@ -1,7 +1,7 @@
 # Configuration
 
 Every setting has a `CITRIC_*` environment variable, and a TOML file is
-optional: citric starts on defaults alone. Precedence is environment > file >
+optional: CitriC starts on defaults alone. Precedence is environment > file >
 default. The full annotated file is
 [`config/citric.toml.example`](../config/citric.toml.example); the server reads
 `/etc/citric/citric.toml` (or `--config <path>`).
@@ -43,7 +43,7 @@ first account with `CITRIC_ADMIN_USER`, or on the server with
 ## Single sign-on (OIDC)
 
 Works with Keycloak, Authentik, Authelia, Zitadel, Okta, Entra ID, Google and
-other OpenID Connect providers. Register citric as a confidential client with
+other OpenID Connect providers. Register CitriC as a confidential client with
 the redirect URI `<public_url>/auth/callback`, the authorization-code flow and
 PKCE.
 
@@ -87,5 +87,5 @@ on the server never breaks existing repos. Commands run in a fresh checkout
 with `CITRIC_CL_ID`, `CITRIC_PS_NUMBER`, `CITRIC_COMMIT_SHA`, `CITRIC_REPO`
 and `CITRIC_TARGET_BRANCH` set, and a throwaway `HOME`.
 
-Without `[[build_tool]]` entries in the server config, citric uses lint
+Without `[[build_tool]]` entries in the server config, CitriC uses lint
 (required), test, integration and format.

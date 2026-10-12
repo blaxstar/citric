@@ -2,7 +2,7 @@
 
 ## No telemetry
 
-citric sends no analytics, crash reports or update checks, and loads nothing
+CitriC sends no analytics, crash reports or update checks, and loads nothing
 from CDNs. Its only outbound connections are ones you configure:
 
 | From | To | When |
@@ -10,8 +10,8 @@ from CDNs. Its only outbound connections are ones you configure:
 | Server | your OIDC provider (discovery, keys, token exchange) | SSO is configured |
 | Server | your Keycloak admin API | Keycloak sync is configured |
 | Server | itself on `localhost` (git hooks) | on push |
-| CLI | your citric server, including `citric update` from `/dl` | always |
-| Build node | your citric server | always |
+| CLI | your CitriC server, including `citric update` from `/dl` | always |
+| Build node | your CitriC server | always |
 | Web UI | the same origin only (fonts are bundled) | always |
 
 Build commands can of course reach whatever the network allows; that's your

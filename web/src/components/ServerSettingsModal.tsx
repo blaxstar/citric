@@ -47,7 +47,7 @@ export function ServerSettingsModal({ onClose }: { onClose: () => void }) {
           <>
             <div>
               <div className="section-title">Site title</div>
-              <input className="input" placeholder="citric" value={siteTitle}
+              <input className="input" placeholder="CitriC" value={siteTitle}
                 onChange={e => setSiteTitle(e.target.value)} />
             </div>
 

@@ -1,6 +1,6 @@
 # Build nodes
 
-A build node is another machine that runs build tools for a citric server, to
+A build node is another machine that runs build tools for a CitriC server, to
 add capacity or another platform. Without any nodes, the server runs every
 build itself, and nothing about this page applies.
 
@@ -23,7 +23,7 @@ under **Admin → Build nodes → Add node**, or:
 citric node token create
 ```
 
-On the new machine, with the citric binary installed:
+On the new machine, with the CitriC binary installed:
 
 ```sh
 citric node join --server https://citric.example.com --token <token> [--name <name>]

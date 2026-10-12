@@ -1,6 +1,6 @@
 # Windows
 
-citric runs natively on Windows as a server, a build node, or just the CLI.
+CitriC runs natively on Windows as a server, a build node, or just the CLI.
 
 ## Install
 
@@ -9,9 +9,9 @@ citric runs natively on Windows as a server, a build node, or just the CLI.
   `C:\Program Files\citric` and adds it to `PATH`.
 - **winget:** `winget install BLAXSTAR.citric`
 - **Scoop:** `scoop install https://raw.githubusercontent.com/blaxstar/citric/main/packaging/scoop/citric.json`
-- **From a citric server:** `irm https://citric.example.com/install.ps1 | iex`
+- **From a CitriC server:** `irm https://citric.example.com/install.ps1 | iex`
 
-**Prerequisite:** [Git for Windows](https://git-scm.com/download/win). citric
+**Prerequisite:** [Git for Windows](https://git-scm.com/download/win). CitriC
 needs `git`, and the server's repository hooks run on its bundled `sh`.
 
 ## Server

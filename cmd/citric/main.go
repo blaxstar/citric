@@ -16,7 +16,7 @@ var cfgPath string
 var version = "dev"
 
 func versionLine() string {
-	return fmt.Sprintf("%s %s (%s/%s) · © BLAXSTAR LLC · Apache-2.0", brand.Name, version, runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("CitriC %s (%s/%s) · © BLAXSTAR LLC · Apache-2.0", version, runtime.GOOS, runtime.GOARCH)
 }
 
 var cmdVersion = &cobra.Command{
