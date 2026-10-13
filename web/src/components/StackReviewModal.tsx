@@ -187,6 +187,9 @@ export function StackReviewModal({ cls, onClose, onFinished }: {
         background: 'rgba(0,0,0,0.55)',
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         display: 'grid', placeItems: 'center', padding: '2rem',
+        // Without a fixed track, one long unbreakable line (a CL title, a diff
+        // line) widens the column past the viewport and the card centers off-screen.
+        gridTemplateColumns: 'minmax(0, 1fr)',
       }}
       onClick={() => { if (!busy) onClose() }}
     >

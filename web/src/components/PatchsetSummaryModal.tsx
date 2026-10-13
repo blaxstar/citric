@@ -60,6 +60,9 @@ export function PatchsetSummaryModal({ clID, ps, onClose }: {
         position: 'fixed', inset: 0, zIndex: 50,
         background: 'rgba(0,0,0,0.55)',
         display: 'grid', placeItems: 'center', padding: '2rem',
+        // Without a fixed track, one long unbreakable line (a CL title, a diff
+        // line) widens the column past the viewport and the card centers off-screen.
+        gridTemplateColumns: 'minmax(0, 1fr)',
       }}
       onClick={onClose}
     >
