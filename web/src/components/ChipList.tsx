@@ -40,7 +40,7 @@ export function ChipList({ items, onChange, placeholder, suggestions, prefix = '
         {list.map(u => (
           <span key={u} style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-            padding: '0.15rem 0.5rem', borderRadius: 0,
+            padding: '0.15rem 0.5rem', borderRadius: 'var(--r-sm)',
             background: 'var(--s2)', fontSize: '0.78rem',
           }}>
             {prefix}{u}

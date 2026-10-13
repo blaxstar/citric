@@ -52,13 +52,14 @@
   --diff-del-word: rgba(120, 48, 48, 0.5);
 
   /* radii — kept tight so surfaces read crisp rather than bubbly */
-  /* Radii are all zero: the UI is deliberately sharp-edged. The tokens stay so
-     components keep one place to change it. */
-  --r-sm: 0;
-  --r:    0;
-  --r-lg: 0;
-  --r-xl: 0;
-  --r-full: 0;
+  /* One small radius everywhere: corners are softened, but buttons and pills
+     stay rectangular. Components read these tokens, so this is the one place
+     to change it. */
+  --r-sm: 5px;
+  --r:    5px;
+  --r-lg: 5px;
+  --r-xl: 5px;
+  --r-full: 5px;
 
 }
 
@@ -493,7 +494,7 @@ code, pre {
   font-size: 0.82rem;
   line-height: 1.45;
   border: var(--hairline) solid var(--border);
-  border-radius: 0;
+  border-radius: var(--r-lg);
   background: var(--s2);
   color: var(--t2);
   cursor: pointer;
@@ -925,7 +926,7 @@ code, pre {
   font-weight: 600;
   line-height: 1.4;
   padding: 0.15rem 0.55rem;
-  border-radius: 0;
+  border-radius: var(--r-full);
   border: var(--hairline) solid var(--accent-a20);
   background: var(--accent-a10);
   color: var(--accent);
@@ -974,7 +975,7 @@ code, pre {
   color: var(--accent);
   background: var(--accent-a10);
   border: var(--hairline) solid var(--accent);
-  border-radius: 0;
+  border-radius: var(--r-full);
   padding: 0.12rem 0.55rem;
 }
 
@@ -1158,7 +1159,7 @@ code, pre {
 .activity-dot {
   width: 11px;
   height: 11px;
-  border-radius: 0;
+  border-radius: var(--r-full);
   background: var(--t3);
   border: 2px solid var(--s1);
   flex-shrink: 0;
@@ -1304,7 +1305,7 @@ code, pre {
 .md-body code {
   background: var(--s3);
   border: var(--hairline) solid var(--border);
-  border-radius: 0;
+  border-radius: var(--r-sm);
   padding: 0.15em 0.4em;
   font-family: monospace;
 }

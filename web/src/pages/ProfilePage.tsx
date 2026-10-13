@@ -42,7 +42,7 @@ function UserListModal({ title, users, onClose }: { title: string; users: string
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                 onClick={() => { onClose(); navigate(`/user/${u}`) }}
               >
-                <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem', borderRadius: 0, flexShrink: 0 }}>
+                <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem', borderRadius: 'var(--r-sm)', flexShrink: 0 }}>
                   {u.slice(0, 2).toUpperCase()}
                 </div>
                 <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{u}</span>
@@ -149,7 +149,7 @@ export function ProfilePage({ username }: { username: string }) {
       {/* header + tabs as one block */}
       <div className="panel" style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.25rem', flexWrap: 'wrap' }}>
-          <div className="avatar" style={{ width: '5rem', height: '5rem', fontSize: '1.6rem', borderRadius: 0 }}>
+          <div className="avatar" style={{ width: '5rem', height: '5rem', fontSize: '1.6rem', borderRadius: 'var(--r-sm)' }}>
             {user.username.slice(0, 2).toUpperCase()}
           </div>
           <div style={{ flex: 1 }}>

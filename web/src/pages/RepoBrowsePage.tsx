@@ -138,7 +138,7 @@ function FileView({ name, ref, path, onEdit }: {
 
       {kind === 'image' && (
         <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--s2)', border: 'var(--hairline) solid var(--border)', borderRadius: 'var(--r)' }}>
-          <img src={rawUrl} alt={path} style={{ maxWidth: '100%', maxHeight: '600px', borderRadius: 0 }} />
+          <img src={rawUrl} alt={path} style={{ maxWidth: '100%', maxHeight: '600px', borderRadius: 'var(--r-sm)' }} />
         </div>
       )}
 
@@ -345,7 +345,7 @@ function LangBar({ langs }: { langs: LangStat[] }) {
   const top = langs.slice(0, 8)
   return (
     <div>
-      <div style={{ display: 'flex', height: '6px', borderRadius: 0, overflow: 'hidden', gap: '1px', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', height: '6px', borderRadius: 'var(--r-sm)', overflow: 'hidden', gap: '1px', marginBottom: '0.5rem' }}>
         {top.map(l => (
           <div key={l.language} style={{ flex: l.percentage, background: l.color, minWidth: '1px' }} title={`${l.language} ${l.percentage.toFixed(1)}%`} />
         ))}
@@ -353,7 +353,7 @@ function LangBar({ langs }: { langs: LangStat[] }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 0.75rem' }}>
         {top.map(l => (
           <div key={l.language} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--t2)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 0, background: l.color, flexShrink: 0, display: 'inline-block' }} />
+            <span style={{ width: 8, height: 8, borderRadius: 'var(--r-sm)', background: l.color, flexShrink: 0, display: 'inline-block' }} />
             {l.language} <span style={{ color: 'var(--t3)' }}>{l.percentage.toFixed(1)}%</span>
           </div>
         ))}
@@ -468,7 +468,7 @@ function Sidebar({ name, ref, detail }: { name: string; ref: string; detail: Rep
             {data.contributors.slice(0, 6).map(c => (
               <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
-                  <div className="avatar" style={{ width: '20px', height: '20px', fontSize: '0.55rem', borderRadius: 0, flexShrink: 0 }}>
+                  <div className="avatar" style={{ width: '20px', height: '20px', fontSize: '0.55rem', borderRadius: 'var(--r-sm)', flexShrink: 0 }}>
                     {c.name.slice(0, 2).toUpperCase()}
                   </div>
                   <span style={{ fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>

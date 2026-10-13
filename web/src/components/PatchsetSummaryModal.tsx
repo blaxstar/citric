@@ -119,7 +119,7 @@ export function PatchsetSummaryModal({ clID, ps, onClose }: {
                   {f.changed_since_prev && (
                     <span
                       title={`changed since PS${summary.prev_patchset}`}
-                      style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--yellow)', border: 'var(--hairline) solid var(--yellow)', borderRadius: 0, padding: '0.05rem 0.35rem' }}
+                      style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--yellow)', border: 'var(--hairline) solid var(--yellow)', borderRadius: 'var(--r-sm)', padding: '0.05rem 0.35rem' }}
                     >
                       ● changed
                     </span>
