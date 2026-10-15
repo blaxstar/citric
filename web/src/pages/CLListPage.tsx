@@ -476,6 +476,8 @@ export function CLListPage({ filter = 'all' }: Props) {
 }
 
 const STACK_PREVIEW_COUNT = 2
+// How often the open stack view refetches its CLs, builds and reviews.
+const STACK_POLL_MS = 4000
 
 // A stack of CLs pushed together. Collapsed by default into one compact card
 // (roughly two list-rows tall) with a short preview + "+N more". The whole card
@@ -606,7 +608,10 @@ function StackCard({ cls, chains, expanded, onToggleExpand, showRepo, selectMode
 // one scrollable list. "View full CL" opens a CL's detail page; "Review stack"
 // walks the stack one CL at a time (StackReviewModal); "Merge stack" hands off
 // to MergeStackModal.
-function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void; onMerge: () => void }) {
+function StackModal({ cls: initial, onClose, onMerge }: { cls: CL[]; onClose: () => void; onMerge: () => void }) {
+  // The members as last fetched, so a CL that merges, picks up a patchset or
+  // goes stale updates here too, not just its builds and reviews.
+  const [cls, setCls] = useState<CL[]>(initial)
   const [buildsByCL, setBuildsByCL] = useState<Map<number, Build[]>>(new Map())
   const [reviewsByCL, setReviewsByCL] = useState<Map<number, Review[]>>(new Map())
   const [loadedIds,  setLoadedIds]  = useState<Set<number>>(new Set())
@@ -617,27 +622,32 @@ function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void;
   const openCLs = cls.filter(cl => cl.status === 'open')
 
   function load() {
-    return Promise.allSettled(cls.map(cl =>
-      Promise.all([api.getBuilds(cl.id), api.getReviews(cl.id)]).then(([builds, reviews]) => ({ id: cl.id, builds, reviews }))))
+    return Promise.allSettled(initial.map(cl =>
+      Promise.all([api.getCL(cl.id), api.getBuilds(cl.id), api.getReviews(cl.id)])
+        .then(([fresh, builds, reviews]) => ({ id: cl.id, fresh, builds, reviews }))))
       .then(results => {
         const map = new Map<number, Build[]>()
         const revs = new Map<number, Review[]>()
+        const fresh = new Map<number, CL>()
         const loaded = new Set<number>()
         for (const r of results) {
           if (r.status === 'fulfilled') {
             map.set(r.value.id, latestBuildPerTool(r.value.builds))
             revs.set(r.value.id, r.value.reviews)
+            fresh.set(r.value.id, r.value.fresh)
             loaded.add(r.value.id)
           }
         }
-        return { map, revs, loaded }
+        return { map, revs, fresh, loaded }
       })
   }
 
-  function apply({ map, revs, loaded }: Awaited<ReturnType<typeof load>>) {
+  function apply({ map, revs, fresh, loaded }: Awaited<ReturnType<typeof load>>) {
     setBuildsByCL(map)
     setReviewsByCL(revs)
     setLoadedIds(loaded)
+    // A CL that failed to load this time keeps what it last showed.
+    setCls(prev => prev.map(cl => fresh.get(cl.id) ?? cl))
   }
 
   useEffect(() => {
@@ -648,6 +658,22 @@ function StackModal({ cls, onClose, onMerge }: { cls: CL[]; onClose: () => void;
     // if the array identity changes on a parent re-render isn't needed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Keep it live while it's open: builds start and finish, reviews and
+  // patchsets land. Polled rather than one /cl/{id}/events stream per CL —
+  // crit is served over HTTP/1.1, where a stack's worth of open streams would
+  // use up the browser's six connections to the host. Same interval as
+  // MergeStackModal; paused while the tab is hidden or a review is open.
+  useEffect(() => {
+    if (reviewing) return
+    let cancelled = false
+    const t = setInterval(() => {
+      if (document.hidden) return
+      load().then(r => { if (!cancelled) apply(r) })
+    }, STACK_POLL_MS)
+    return () => { cancelled = true; clearInterval(t) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewing])
 
   function finishReview(results: Map<number, StepResult>) {
     setReviewing(false)
