@@ -237,6 +237,7 @@ function DiffFile({
       )}
 
       {!collapsed && !showPreview && (
+        <div className="diff-scroll">
         <table className="diff-table">
           <tbody>
             {parsed.map((line, idx) => {
@@ -347,6 +348,7 @@ function DiffFile({
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

@@ -407,6 +407,13 @@ code, pre {
   white-space: nowrap;
 }
 
+/* Horizontal scroll container for a file's diff: long code lines no longer
+   wrap (see .diff-code), they extend and this box scrolls sideways. The
+   line-number gutters stay pinned via position:sticky below. */
+.diff-scroll {
+  overflow-x: auto;
+}
+
 .diff-table {
   width: 100%;
   border-collapse: collapse;
@@ -432,6 +439,10 @@ code, pre {
   padding: 0.25rem 0;
 }
 
+/* The two line-number columns stay put while code scrolls horizontally.
+   The old-line column pins at the left edge; the new-line column pins just
+   to its right (3rem = the old column's width). An opaque background keeps
+   scrolling code from showing through. */
 .diff-ln {
   width: 3rem;
   min-width: 3rem;
@@ -441,8 +452,14 @@ code, pre {
   user-select: none;
   border-right: var(--hairline) solid var(--border);
   cursor: pointer;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--s1);
 }
 .diff-ln:hover { color: var(--accent); }
+/* second gutter (new-line numbers) sits right after the first */
+.diff-ln + .diff-ln { left: 3rem; }
 
 .diff-sign {
   width: 1.2rem;
@@ -455,29 +472,36 @@ code, pre {
 
 .diff-code {
   padding: 0 0.75rem !important;
-  overflow: hidden;
-  white-space: pre-wrap;
-  word-break: break-all;
+  white-space: pre;
 }
 
 .diff-add { background: var(--diff-add-bg); }
 .diff-add .diff-sign { color: var(--green); }
-.diff-add .diff-ln   { background: color-mix(in srgb, var(--diff-add-bg) 60%, transparent); }
+.diff-add .diff-ln   { background: color-mix(in srgb, var(--diff-add-bg) 60%, var(--s1)); }
 
 .diff-del { background: var(--diff-del-bg); }
 .diff-del .diff-sign { color: var(--red); }
-.diff-del .diff-ln   { background: color-mix(in srgb, var(--diff-del-bg) 60%, transparent); }
+.diff-del .diff-ln   { background: color-mix(in srgb, var(--diff-del-bg) 60%, var(--s1)); }
 
+/* Comment threads/forms span the full (possibly very wide) code table, so
+   pin their content to the left edge and cap its width — it stays readable
+   and in view no matter how far the diff is scrolled sideways. */
 .diff-comment-form {
   background: var(--s2);
   border-top: var(--hairline) solid var(--border);
   padding: 0.75rem 1rem;
+  position: sticky;
+  left: 0;
+  max-width: 56rem;
 }
 
 .diff-comment-thread {
   background: color-mix(in srgb, var(--accent-a10) 80%, transparent);
   border-top: var(--hairline) solid var(--border);
   padding: 0.75rem 1rem;
+  position: sticky;
+  left: 0;
+  max-width: 56rem;
 }
 
 .diff-comment + .diff-comment {
@@ -489,6 +513,8 @@ code, pre {
 /* google-docs-style comment indicator on a diff line */
 .diff-comment-bubble {
   float: right;
+  position: sticky;
+  right: 0.5rem;
   margin-left: 0.5rem;
   padding: 0 0.4rem;
   font-size: 0.82rem;
