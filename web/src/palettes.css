@@ -432,3 +432,46 @@
   --shadow-btn: 0 8px 20px -18px rgba(196,92,0,0.14);
   --shadow-pop: 0 20px 52px -44px rgba(196,92,0,0.14);
 }
+
+/* BLAXSTAR Magenta — the theme crit wore before the citrus rebrand. */
+:root[data-palette="blaxstar-magenta"][data-theme="dark"],
+:root[data-palette="blaxstar-magenta"]:not([data-theme]) {
+  --bg: #0b0a0e;
+  --s1: #1c1a22;
+  --s2: #241f2e;
+  --s3: #2c2538;
+  --accent: #e5a9e5;
+  --accent-2: #e5a9e5;
+  --accent-dim: #d98ad9;
+  --accent-a20: #e5a9e533;
+  --accent-a10: #e5a9e519;
+  --t0: #f5f5f5;
+  --t1: #c4b8d4;
+  --t2: #9b8fb0;
+  --t3: #7a6e8f;
+  --border: #2c2538;
+  --border-input: #3a2e4a;
+  --shadow-card: 0 16px 44px -40px rgba(229,169,229,0.22);
+  --shadow-btn: 0 8px 20px -18px rgba(229,169,229,0.22);
+  --shadow-pop: 0 20px 52px -44px rgba(229,169,229,0.22);
+}
+:root[data-palette="blaxstar-magenta"][data-theme="light"] {
+  --bg: #f5f2f8;
+  --s1: #eceaf4;
+  --s2: #e2daee;
+  --s3: #d5cce4;
+  --accent: #b5179e;
+  --accent-2: #b5179e;
+  --accent-dim: #9c0f87;
+  --accent-a20: #b5179e33;
+  --accent-a10: #b5179e19;
+  --t0: #1c1b22;
+  --t1: #3d3550;
+  --t2: #5e5672;
+  --t3: #7a6e8f;
+  --border: #cfc8de;
+  --border-input: #bcb3d0;
+  --shadow-card: 0 16px 44px -40px rgba(181,23,158,0.14);
+  --shadow-btn: 0 8px 20px -18px rgba(181,23,158,0.14);
+  --shadow-pop: 0 20px 52px -44px rgba(181,23,158,0.14);
+}

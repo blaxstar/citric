@@ -14,6 +14,9 @@ export const PALETTES: Palette[] = [
   { id: 'marmalade', name: 'Marmalade', dark: ['#100c08', '#eba73e'], light: ['#fcf6ec', '#a65f00'] },
   { id: 'zest', name: 'Zest', dark: ['#000000', '#ffe81a'], light: ['#ffffff', '#7a6600'] },
   { id: 'clementine-sea', name: 'Clementine & Sea', dark: ['#081115', '#ff9a3c'], light: ['#f4f8f9', '#c45c00'] },
+  // The original BLAXSTAR magenta theme crit shipped before the citrus
+  // rebrand, kept as a selectable palette.
+  { id: 'blaxstar-magenta', name: 'BLAXSTAR Magenta', dark: ['#0b0a0e', '#e5a9e5'], light: ['#f5f2f8', '#b5179e'] },
 ]
 
 export const DEFAULT_PALETTE = PALETTES[0].id
