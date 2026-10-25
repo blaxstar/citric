@@ -18,6 +18,10 @@ import { getUsername } from '../lib/auth'
 type Filter = 'all' | 'open' | 'merged' | 'abandoned' | 'mine' | 'assigned'
 type SortBy = 'updated' | 'id_desc' | 'id_asc'
 
+// How often the feed refetches in the background so new CLs, status changes,
+// patchsets and reviews show up without a manual reload.
+const LIST_POLL_MS = 10000
+
 interface Props {
   filter?: Filter
 }
@@ -191,6 +195,21 @@ export function CLListPage({ filter = 'all' }: Props) {
     setSelectMode(false)
     setSelected(new Set())
   }, [filter, status])
+
+  // Keep the feed live: new CLs, status changes, patchsets and reviews land
+  // without a manual reload. Polled (crit is served over HTTP/1.1, same
+  // reasoning as the stack view) and quiet — no spinner — so the list never
+  // flashes. Paused while the tab is hidden, while bulk-selecting (a reorder
+  // mid-select is jarring and could move a row out from under the cursor), and
+  // while the merge dialog is open (it drives its own refresh).
+  useEffect(() => {
+    if (selectMode || mergeStack) return
+    const t = setInterval(() => {
+      if (document.hidden) return
+      refreshQuietly()
+    }, LIST_POLL_MS)
+    return () => clearInterval(t)
+  }, [refreshQuietly, selectMode, mergeStack])
 
   // Any open CL is selectable — build/review/submit are meaningful regardless
   // of authorship (unlike abandon, which the server still restricts to the
